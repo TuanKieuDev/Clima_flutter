@@ -5,14 +5,13 @@ import 'package:clima/services/weather.dart';
 import 'package:clima/services/location.dart';
 import 'city_screen.dart';
 
-
 import '../services/networking.dart';
 
 const apiKey = '599d4a4403632d2a8bea7175020523aa';
 
+String image_background = 'location_background.jpg';
 
 class LocationScreen extends StatefulWidget {
-
   LocationScreen({this.locationWeather});
 
   final locationWeather;
@@ -34,8 +33,16 @@ class _LocationScreenState extends State<LocationScreen> {
     updateUI(widget.locationWeather);
   }
 
-  void updateUI(dynamic weatherData){
+  void updateUI(dynamic weatherData) {
     setState(() {
+      if(weatherData == null){
+        temperature = 0;
+        weatherIcon = 'Error';
+        weatherMessage = 'Unable to get data';
+        cityName = '';
+        return;
+      }
+
       double temp = weatherData['main']['temp'];
       temperature = temp.toInt();
       var condition = weatherData['weather'][0]['id'];
@@ -43,8 +50,8 @@ class _LocationScreenState extends State<LocationScreen> {
       weatherMessage = weather.getMessage(temperature!);
       cityName = weatherData['name'];
     });
-
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +59,7 @@ class _LocationScreenState extends State<LocationScreen> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('images/location_background.jpg'),
+            image: AssetImage('images/$image_background'),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
                 Colors.white.withOpacity(0.8), BlendMode.dstATop),
@@ -68,10 +75,11 @@ class _LocationScreenState extends State<LocationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   FlatButton(
-                    onPressed: () async{
+                    onPressed: () async {
                       Location location = Location();
                       await location.getCurrentLocation();
-                      var weatherData =  NetworkHelper('https://api.openweathermap.org/data/2.5/weather?lat=${location.latitude}&lon=${location.longitude}&appid=$apiKey&units=metric');
+                      var weatherData = NetworkHelper(
+                          'https://api.openweathermap.org/data/2.5/weather?lat=${location.latitude}&lon=${location.longitude}&appid=$apiKey&units=metric');
                       updateUI(weatherData);
                     },
                     child: Icon(
@@ -80,10 +88,18 @@ class _LocationScreenState extends State<LocationScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context){
+                    onPressed: () async {
+                      var typedName = await Navigator.push(context,
+                          MaterialPageRoute(builder: (context) {
                         return CityScreen();
                       }));
+                      print(typedName);
+
+                      if(typedName != null){
+                        var weatherData = await weather.getCityWeather(typedName);
+                        updateUI(weatherData);
+                        print(weatherData);
+                      }
                     },
                     child: Icon(
                       Icons.location_city,
@@ -122,5 +138,3 @@ class _LocationScreenState extends State<LocationScreen> {
     );
   }
 }
-
-
